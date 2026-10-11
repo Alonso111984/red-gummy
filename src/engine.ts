@@ -76,8 +76,19 @@ export function isOpen(b: Business, now = new Date()) {
   });
 }
 export function hoursText(b: Business) {
-  const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-  return days.map((day, i) => `${day}: ${(b.hours.weekly[String(i)] ?? []).map(s => `${s.start}–${s.end}`).join(', ') || 'cerrado'}`).join(' · ');
+  const names=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+  const order=[1,2,3,4,5,6,0];
+  const groups: {start:number;end:number;text:string}[]=[];
+  for(const day of order){
+    const text=(b.hours.weekly[String(day)]??[]).map(s=>`${s.start}–${s.end}`).join(', ');
+    const previous=groups.at(-1);
+    if(previous && previous.text===text) previous.end=day;
+    else groups.push({start:day,end:day,text});
+  }
+  return groups.filter(g=>g.text).map(g=>{
+    const label=g.start===g.end?names[g.start]:`${names[g.start]} a ${names[g.end]}`;
+    return `${label[0].toUpperCase()}${label.slice(1)} · ${g.text}`;
+  }).join(' · ') || 'Sin horario de atención';
 }
 export function validateCustomer(customer: Customer, b: Business): Record<string, string> {
   const errors: Record<string, string> = {};

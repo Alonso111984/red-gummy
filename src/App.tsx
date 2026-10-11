@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDown, ArrowLeft, ArrowRight, Check, ChefHat, ChevronRight, Clock3, Copy, Leaf, MapPin, MessageCircle, Minus, Navigation, Plus, Search, ShoppingBag, Truck, Wallet, X, Smartphone, Info, PackageCheck } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, Check, ChefHat, ChevronRight, Clock3, Copy, Leaf, MapPin, MessageCircle, Minus, Navigation, Plus, ShoppingBag, Truck, Wallet, X, Smartphone, Info, PackageCheck } from 'lucide-react';
 import type { Business, CartItem, CartLine, Customer, PreparedOrder, Product } from './types';
 import { calculateTotals, cartKey, cartLines, changeQuantity, gpsUrl, hoursText, isOpen, money, prepareOrder, safeMapUrl, sanitizeCart, validateCustomer, whatsappUrl } from './engine';
 
@@ -36,7 +36,6 @@ function ProductCard({product:p, business:b, cart, update}: {product:Product; bu
 export function App({business:b}: {business:Business}) {
   const [cart, setCart] = useState<CartItem[]>(() => readCart(b));
   const [category, setCategory] = useState('all');
-  const [search, setSearch] = useState('');
   const [onlyAvailable, setOnlyAvailable] = useState(false);
   const [checkout, setCheckout] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -63,8 +62,7 @@ export function App({business:b}: {business:Business}) {
     setCart(prev => changeQuantity(prev,item,delta,b));
     setAnnouncement(`${delta > 0 ? 'Agregado' : 'Actualizado'}: ${b.products.find(p => p.id === item.productId)?.name ?? 'producto'}`);
   };
-  const normalize = (s:string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-  const visible = b.products.filter(p => (category==='all' || p.categoryId===category) && (!onlyAvailable || p.available) && normalize(`${p.name} ${p.description}`).includes(normalize(search)));
+  const visible = b.products.filter(p => (category==='all' || p.categoryId===category) && (!onlyAvailable || p.available));
   const map = safeMapUrl(b.location.mapUrl);
   const categories = b.categories.filter(c => b.products.some(p => p.categoryId === c.id));
   return <>
@@ -79,16 +77,17 @@ export function App({business:b}: {business:Business}) {
         <h1>{b.tagline}</h1>
         <p>{b.delivery.enabled ? '🛵 Tenemos delivery' : '🛍️ Retiro en local'} · {b.payments.cash ? '💵 Paga en efectivo al recibir tu pedido' : '💳 Pago por transferencia'}</p>
         <p>🕘 {hoursText(b)}</p>
+        <p className="delivery-warning">⚠️ Sin envíos fuera de horario</p>
         {map && <p>📍 Visítanos en nuestro local · <a href={map} target="_blank" rel="noopener noreferrer">Ver mapa</a></p>}
         <button className="text-button" onClick={() => setDetailsOpen(!detailsOpen)} aria-expanded={detailsOpen} aria-controls="business-details"><span className={`status-dot ${open?'open':''}`}/>{open?'En horario de atención':'Fuera de horario'} · Ver tarifas <ChevronRight size={14}/></button>
       </section>
       {detailsOpen && <section className="business-details" id="business-details"><div><h2><Clock3 size={18}/> Horarios</h2><p>{hoursText(b)}</p><small>Zona horaria: {b.hours.timeZone}{b.demo ? ' · ejemplo configurable' : ''}</small></div><div><h2><Truck size={18}/> Delivery</h2>{b.delivery.zones.map(z=><p key={z.id}>{z.name} · {z.feeCents ? money(z.feeCents,b) : 'GRATIS'}</p>)}</div></section>}
       {!open && !blocked && <p className="notice" role="status">{b.hours.closedMessage} Puedes preparar tu solicitud; el negocio la atenderá en su horario.</p>}
       {blocked && <p className="notice" role="status">{b.hours.closedMessage}</p>}
-      <section className="menu-section" id="menu">        <div className="menu-tools">{categories.length > 1 && <nav className="category-tabs" aria-label="Categorías"><button className={category==='all'?'active':''} onClick={() => setCategory('all')} aria-pressed={category==='all'}>Todo el menú</button>{categories.map(c => <button key={c.id} className={category===c.id?'active':''} onClick={() => setCategory(c.id)} aria-pressed={category===c.id}>{c.name}</button>)}</nav>}<label className="search-box"><Search size={17}/><input type="search" placeholder="¿Qué se te antoja?" aria-label="Buscar productos" value={search} onChange={e => setSearch(e.target.value)}/></label></div>
+      <section className="menu-section" id="menu">        <div className="menu-tools">{categories.length > 1 && <nav className="category-tabs" aria-label="Categorías"><button className={category==='all'?'active':''} onClick={() => setCategory('all')} aria-pressed={category==='all'}>Todo el menú</button>{categories.map(c => <button key={c.id} className={category===c.id?'active':''} onClick={() => setCategory(c.id)} aria-pressed={category===c.id}>{c.name}</button>)}</nav>}</div>
         <div className="filter-row"><label><input type="checkbox" checked={onlyAvailable} onChange={e=>setOnlyAvailable(e.target.checked)}/> Mostrar solo disponibles</label><span>{visible.length} {visible.length===1?'opción':'opciones'}</span></div>
         <div className="product-grid">{visible.map(p => <ProductCard key={p.id} product={p} business={b} cart={cart} update={update}/>)}</div>
-        {!visible.length && <div className="empty-state"><Search size={30}/><h3>No encontramos ese antojo</h3><p>Prueba con otro nombre o revisa todas las categorías.</p><button className="btn secondary" onClick={()=>{setCategory('all');setSearch('');setOnlyAvailable(false);}}>Ver todo el menú</button></div>}
+        {!visible.length && <div className="empty-state"><h3>No encontramos ese antojo</h3><p>Prueba con otro nombre o revisa todas las categorías.</p><button className="btn secondary" onClick={()=>{setCategory('all');setOnlyAvailable(false);}}>Ver todo el menú</button></div>}
       </section>
       {storageWarning && <p className="notice">Tu navegador no permite guardar el carrito. Puedes pedir en esta sesión.</p>}
     </main>

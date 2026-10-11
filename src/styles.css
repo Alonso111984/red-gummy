@@ -8,3 +8,6 @@ html{scroll-padding-top:90px}main,footer{max-width:880px;margin-inline:auto;padd
 
 /* Readable mobile fields prevent automatic focus zoom without disabling pinch zoom. */
 .field input,.field select,.field textarea,.search-box input{font-size:16px}.studio-contact{padding:10px 0;min-height:44px;display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px;text-underline-offset:4px;line-height:1.6}.gps-confirm-overlay{position:absolute;inset:0;z-index:50;background:#000b;display:flex;align-items:center;justify-content:center;padding:16px}.gps-confirm{width:100%;max-width:420px;max-height:calc(100dvh - 40px);overflow:auto;background:#211817;border:1px solid var(--border);border-radius:16px;padding:22px;box-shadow:0 15px 50px #0008}.gps-confirm h3{font-size:22px;margin-bottom:12px}.gps-confirm p{font-size:14px;line-height:1.6;margin-bottom:16px}.gps-confirm .btn{margin:5px 0}.gps-confirm .text-button{min-height:44px}.menu-tools .search-box{flex:1}
+
+/* Business information remains readable in the compact catalogue. */
+.app-intro p{font-size:16px;line-height:1.5;margin:7px 0}.app-intro .delivery-warning{color:#ffca75;font-size:14px;font-weight:700}@media(max-width:700px){.app-intro p{font-size:14px}.app-intro .delivery-warning{font-size:14px}}

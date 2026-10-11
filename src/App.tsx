@@ -36,7 +36,6 @@ function ProductCard({product:p, business:b, cart, update}: {product:Product; bu
 export function App({business:b}: {business:Business}) {
   const [cart, setCart] = useState<CartItem[]>(() => readCart(b));
   const [category, setCategory] = useState('all');
-  const [onlyAvailable, setOnlyAvailable] = useState(false);
   const [checkout, setCheckout] = useState(false);
   const [online, setOnline] = useState(navigator.onLine && !window.__FOOD_OFFLINE_CONFIG__);
   const [storageWarning, setStorageWarning] = useState(false);
@@ -57,7 +56,7 @@ export function App({business:b}: {business:Business}) {
     setCart(prev => changeQuantity(prev,item,delta,b));
     setAnnouncement(`${delta > 0 ? 'Agregado' : 'Actualizado'}: ${b.products.find(p => p.id === item.productId)?.name ?? 'producto'}`);
   };
-  const visible = b.products.filter(p => (category==='all' || p.categoryId===category) && (!onlyAvailable || p.available));
+  const visible = b.products.filter(p => (category==='all' || p.categoryId===category));
   const map = safeMapUrl(b.location.mapUrl);
   const categories = b.categories.filter(c => b.products.some(p => p.categoryId === c.id));
   return <>
@@ -70,15 +69,15 @@ export function App({business:b}: {business:Business}) {
     <main>
       <section className="app-intro" aria-label="Información del negocio">
         <h1>{b.tagline}</h1>
-        <p>{b.delivery.enabled ? '🛵 Tenemos delivery' : '🛍️ Retiro en local'} · {b.payments.cash ? '💵 Paga en efectivo al recibir tu pedido' : '💳 Pago por transferencia'}</p>
+        <p>{b.delivery.enabled ? '🛵 Tenemos delivery' : '🛍️ Retiro en local'}</p>
+        <p>{b.payments.cash ? '💵 Paga en efectivo al recibir tu pedido' : '💳 Pago por transferencia'}</p>
         <p>🕘 {hoursText(b)}</p>
         <p className="delivery-warning">⚠️ Sin envíos fuera de horario</p>
         {map && <p>📍 Visítanos en nuestro local · <a href={map} target="_blank" rel="noopener noreferrer">Ver mapa</a></p>}
       </section>
       <section className="menu-section" id="menu">        <div className="menu-tools">{categories.length > 1 && <nav className="category-tabs" aria-label="Categorías"><button className={category==='all'?'active':''} onClick={() => setCategory('all')} aria-pressed={category==='all'}>Todo el menú</button>{categories.map(c => <button key={c.id} className={category===c.id?'active':''} onClick={() => setCategory(c.id)} aria-pressed={category===c.id}>{c.name}</button>)}</nav>}</div>
-        <div className="filter-row"><label><input type="checkbox" checked={onlyAvailable} onChange={e=>setOnlyAvailable(e.target.checked)}/> Mostrar solo disponibles</label><span>{visible.length} {visible.length===1?'opción':'opciones'}</span></div>
         <div className="product-grid">{visible.map(p => <ProductCard key={p.id} product={p} business={b} cart={cart} update={update}/>)}</div>
-        {!visible.length && <div className="empty-state"><h3>No encontramos ese antojo</h3><p>Prueba con otro nombre o revisa todas las categorías.</p><button className="btn secondary" onClick={()=>{setCategory('all');setOnlyAvailable(false);}}>Ver todo el menú</button></div>}
+        {!visible.length && <div className="empty-state"><h3>No encontramos ese antojo</h3><p>Prueba con otro nombre o revisa todas las categorías.</p><button className="btn secondary" onClick={()=>{setCategory('all');}}>Ver todo el menú</button></div>}
       </section>
       {storageWarning && <p className="notice">Tu navegador no permite guardar el carrito. Puedes pedir en esta sesión.</p>}
     </main>

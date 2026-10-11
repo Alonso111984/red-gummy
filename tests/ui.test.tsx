@@ -16,6 +16,7 @@ test('flujo interactivo: variantes, validación, delivery, retiro, pago y copia 
   win.HTMLElement.prototype.scrollTo=function(){};
   let copied='';Object.defineProperty(win.navigator,'clipboard',{value:{writeText:async(text:string)=>{copied=text;}},configurable:true});
   const b=JSON.parse(fs.readFileSync(new URL('./fixtures/business.json',import.meta.url),'utf8')) as Business;
+  b.categories.push({id:'empty-category',name:'Categoría vacía'});
   const root=createRoot(document.getElementById('root')!);
   const click=async(selector:string)=>{const element=document.querySelector<HTMLElement>(selector);assert.ok(element,selector);await act(async()=>element.click());};
   const fill=async(selector:string,value:string)=>{const el=document.querySelector<HTMLInputElement>(selector)!;assert.ok(el,selector);await act(async()=>{Object.getOwnPropertyDescriptor(win.HTMLInputElement.prototype,'value')!.set!.call(el,value);el.dispatchEvent(new win.Event('input',{bubbles:true}));el.dispatchEvent(new win.Event('change',{bubbles:true}));});};
@@ -25,6 +26,8 @@ test('flujo interactivo: variantes, validación, delivery, retiro, pago y copia 
     await act(async()=>root.render(<App business={b}/>));
     assert.equal(document.querySelectorAll('.product-card').length,5);
     assert.equal(document.querySelector('.hero'),null);
+    assert.ok(!document.querySelector('.category-tabs')?.textContent?.includes('Categoría vacía'));
+    assert.ok(document.querySelector<HTMLAnchorElement>('.studio-contact')?.href.startsWith('https://wa.me/593996350488?text='));
     assert.equal(document.querySelector('.brand strong'),null);
     assert.equal(new Set([...document.querySelectorAll<HTMLImageElement>('.product-photo img')].map(img=>img.src)).size,5);
     assert.equal(document.querySelectorAll('.sold-out .quantity').length,0);
@@ -47,6 +50,14 @@ test('flujo interactivo: variantes, validación, delivery, retiro, pago y copia 
     Object.defineProperty(win,'isSecureContext',{value:true,configurable:true});
     Object.defineProperty(win.navigator,'geolocation',{value:{getCurrentPosition:(_success:unknown,failure:(e:{code:number})=>void)=>{gpsCalls++;failure({code:1});}},configurable:true});
     assert.equal(gpsCalls,0);
+    await submit();
+    assert.ok(document.querySelector('[role="alertdialog"]')?.textContent?.includes('Falta la ubicación'));
+    assert.equal(gpsCalls,0);
+    await click('.gps-confirm > .primary');
+    assert.ok(document.querySelector('.gps-confirm')?.textContent?.includes('Permiso denegado'));
+    await click('.gps-confirm > .text-button');
+    assert.equal(document.querySelector('[role="alertdialog"]'),null);
+    gpsCalls=0;
     await click('.gps-section > button');
     assert.equal(gpsCalls,1);assert.ok(document.querySelector('.gps-section')?.textContent?.includes('Permiso denegado'));assert.equal(document.querySelector('.gps-result'),null);
     Object.defineProperty(win.navigator,'geolocation',{value:{getCurrentPosition:(success:(p:{coords:{latitude:number;longitude:number}})=>void)=>{gpsCalls++;success({coords:{latitude:-2.1,longitude:-80.5}});}},configurable:true});
@@ -57,7 +68,7 @@ test('flujo interactivo: variantes, validación, delivery, retiro, pago y copia 
     const message=document.querySelector<HTMLTextAreaElement>('.message-preview')?.value??'';
     assert.ok(message.includes('Ana Pérez'));assert.ok(message.includes('Zona sur'));assert.ok(message.includes('Con salsa picante'));assert.ok(message.includes('Cobrar al entregar:'));
     assert.ok(message.includes('https://www.google.com/maps?q=-2.100000,-80.500000'));
-    assert.equal(document.querySelectorAll('a[href*="wa.me"]').length,0);
+    assert.equal(document.querySelectorAll('.checkout-dialog a[href*="wa.me"]').length,0);
     await click('.checkout-scroll > .btn');assert.ok(copied.includes('PEDIDO DE DEMOSTRACIÓN'));
     await click('.back-button');await click('input[value="pickup"]');
     assert.equal(document.querySelector('input[name="address"]'),null);
@@ -66,8 +77,24 @@ test('flujo interactivo: variantes, validación, delivery, retiro, pago y copia 
     await submit();
     const pickup=document.querySelector<HTMLTextAreaElement>('.message-preview')!.value;
     assert.ok(pickup.includes('Retiro en local'));assert.ok(pickup.includes('Pago pendiente de verificar'));assert.ok(!pickup.includes('Calle de prueba'));
+    await click('.back-button');
+    await click('input[value="delivery"]');
+    await fill('input[name="address"]','Calle sin GPS');
+    if(document.querySelector('.gps-result'))await click('.gps-result button');
+    await submit();
+    await click('.gps-confirm > .secondary');
+    const noGps=document.querySelector<HTMLTextAreaElement>('.message-preview')!.value;
+    assert.ok(noGps.includes('Calle sin GPS'));
+    assert.ok(!noGps.includes('maps?q='));
+    await click('.back-button');
+    await submit();
+    await click('.gps-confirm > .primary');
+    assert.ok(document.querySelector<HTMLTextAreaElement>('.message-preview')!.value.includes('maps?q='));
     await click('[aria-label="Cerrar pedido"]');assert.equal(document.querySelector('dialog'),null);
     assert.ok(JSON.parse(localStorage.getItem('armaia-food:armaia-demo:cart-v1')!).length===2);
+    b.categories=b.categories.filter(c=>c.id===b.products[0].categoryId);
+    await act(async()=>root.render(<App business={{...b}}/>));
+    assert.equal(document.querySelector('.category-tabs'),null);
     assert.ok(!localStorage.getItem('armaia-food:armaia-demo:cart-v1')!.includes('Calle de prueba'));
   }finally{await act(async()=>root.unmount());dom.window.close();}
 });

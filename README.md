@@ -18,3 +18,7 @@ Verificación: compilación y pruebas automatizadas. Revisión visual en navegad
 ## Diseño compacto v2
 
 Encabezado sticky con logo centrado, sin hero, catálogo en filas con foto a la izquierda y controles de cantidad, barra de subtotal fija y resumen sin fotografías. Layout responsive para móvil y escritorio. Fotos originales sin modificaciones. Compilación y 37 pruebas automatizadas verificadas; revisión visual en navegador pendiente.
+
+## Flujo v3
+
+Pie de contacto ARMAIA separado del WhatsApp de pedidos. Categorías vacías ocultas; sin filtros si solo hay una. Campos de 16 px para prevenir zoom de foco móvil sin bloquear zoom manual. Envío directo con aviso opcional de GPS, permiso voluntario y alternativa de dirección escrita. El cliente pulsa Enviar dentro de WhatsApp.

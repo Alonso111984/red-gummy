@@ -66,6 +66,7 @@ export function App({business:b}: {business:Business}) {
   const normalize = (s:string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
   const visible = b.products.filter(p => (category==='all' || p.categoryId===category) && (!onlyAvailable || p.available) && normalize(`${p.name} ${p.description}`).includes(normalize(search)));
   const map = safeMapUrl(b.location.mapUrl);
+  const categories = b.categories.filter(c => b.products.some(p => p.categoryId === c.id));
   return <>
     <a className="skip-link" href="#menu">Ir al menú</a>
     {b.demo && <div className="demo-banner"><span><Info size={14}/> ARMAIA Food Studio · Real Object + UI · Demo 2</span><span>Imágenes y datos ilustrativos. Sin pedidos reales.</span></div>}
@@ -84,14 +85,14 @@ export function App({business:b}: {business:Business}) {
       {detailsOpen && <section className="business-details" id="business-details"><div><h2><Clock3 size={18}/> Horarios</h2><p>{hoursText(b)}</p><small>Zona horaria: {b.hours.timeZone}{b.demo ? ' · ejemplo configurable' : ''}</small></div><div><h2><Truck size={18}/> Delivery</h2>{b.delivery.zones.map(z=><p key={z.id}>{z.name} · {z.feeCents ? money(z.feeCents,b) : 'GRATIS'}</p>)}</div></section>}
       {!open && !blocked && <p className="notice" role="status">{b.hours.closedMessage} Puedes preparar tu solicitud; el negocio la atenderá en su horario.</p>}
       {blocked && <p className="notice" role="status">{b.hours.closedMessage}</p>}
-      <section className="menu-section" id="menu">        <div className="menu-tools"><nav className="category-tabs" aria-label="Categorías"><button className={category==='all'?'active':''} onClick={() => setCategory('all')} aria-pressed={category==='all'}>Todo el menú</button>{b.categories.map(c => <button key={c.id} className={category===c.id?'active':''} onClick={() => setCategory(c.id)} aria-pressed={category===c.id}>{c.name}</button>)}</nav><label className="search-box"><Search size={17}/><input type="search" placeholder="¿Qué se te antoja?" aria-label="Buscar productos" value={search} onChange={e => setSearch(e.target.value)}/></label></div>
+      <section className="menu-section" id="menu">        <div className="menu-tools">{categories.length > 1 && <nav className="category-tabs" aria-label="Categorías"><button className={category==='all'?'active':''} onClick={() => setCategory('all')} aria-pressed={category==='all'}>Todo el menú</button>{categories.map(c => <button key={c.id} className={category===c.id?'active':''} onClick={() => setCategory(c.id)} aria-pressed={category===c.id}>{c.name}</button>)}</nav>}<label className="search-box"><Search size={17}/><input type="search" placeholder="¿Qué se te antoja?" aria-label="Buscar productos" value={search} onChange={e => setSearch(e.target.value)}/></label></div>
         <div className="filter-row"><label><input type="checkbox" checked={onlyAvailable} onChange={e=>setOnlyAvailable(e.target.checked)}/> Mostrar solo disponibles</label><span>{visible.length} {visible.length===1?'opción':'opciones'}</span></div>
         <div className="product-grid">{visible.map(p => <ProductCard key={p.id} product={p} business={b} cart={cart} update={update}/>)}</div>
         {!visible.length && <div className="empty-state"><Search size={30}/><h3>No encontramos ese antojo</h3><p>Prueba con otro nombre o revisa todas las categorías.</p><button className="btn secondary" onClick={()=>{setCategory('all');setSearch('');setOnlyAvailable(false);}}>Ver todo el menú</button></div>}
       </section>
       {storageWarning && <p className="notice">Tu navegador no permite guardar el carrito. Puedes pedir en esta sesión.</p>}
     </main>
-    <footer><span>Creado con <strong>ARMAIA Food Studio</strong></span>{installPrompt && <button className="text-button" onClick={async()=>{await installPrompt.prompt(); await installPrompt.userChoice; setInstallPrompt(null);}}><Smartphone size={16}/> Instalar app</button>}</footer>
+    <footer><a className="studio-contact" href={`https://wa.me/593996350488?text=${encodeURIComponent("Hola, vi una miniapp creada con ARMAIA Food Studio y quiero información para tener una para mi negocio.")}`} target="_blank" rel="noopener noreferrer">✨ Creado con <strong>ARMAIA Food Studio</strong> · Contáctanos ↗</a>{installPrompt && <button className="text-button" onClick={async()=>{await installPrompt.prompt(); await installPrompt.userChoice; setInstallPrompt(null);}}><Smartphone size={16}/> Instalar app</button>}</footer>
     <div className="sr-only" aria-live="polite">{announcement}</div>
     {count > 0 && <div className="cart-dock"><div className="dock-inner"><span className="dock-icon"><ShoppingBag size={21}/><b>{count}</b></span><div className="dock-total"><small>Subtotal · {count} {count===1?'unidad':'unidades'}</small><strong>{money(subtotal,b)}<span> + delivery</span></strong></div><button className="btn primary" onClick={()=>setCheckout(true)}>🛒 Pedir ahora<ArrowRight size={18}/></button></div></div>}
     {checkout && <Checkout business={b} cart={cart} lines={lines} update={update} close={()=>setCheckout(false)} online={online}/>}
@@ -103,6 +104,10 @@ function Checkout({business:b, cart, lines, update, close, online}: {business:Bu
   const [customer, setCustomer] = useState<Customer>({firstName:'',lastName:'',mode:b.delivery.enabled?'delivery':'pickup',zoneId:'',address:'',reference:'',notes:'',payment:b.payments.cash?'cash':'transfer',gps:null});
   const [errors, setErrors] = useState<Record<string,string>>({});
   const [prepared, setPrepared] = useState<PreparedOrder | null>(null);
+  const [gpsPrompt, setGpsPrompt] = useState(false);
+  const promptButton = useRef<HTMLButtonElement>(null);
+  const promptFocus = useRef<HTMLElement|null>(null);
+  useEffect(() => { if(gpsPrompt){promptFocus.current=document.activeElement as HTMLElement;promptButton.current?.focus();}else if(promptFocus.current){promptFocus.current.focus();promptFocus.current=null;} }, [gpsPrompt]);
   const [gpsStatus, setGpsStatus] = useState('');
   const [gpsBusy, setGpsBusy] = useState(false);
   const [copyStatus, setCopyStatus] = useState('');
@@ -117,14 +122,24 @@ function Checkout({business:b, cart, lines, update, close, online}: {business:Bu
     return ()=> {gpsRequest.current++; document.body.style.overflow=previousOverflow; previouslyFocused?.focus();};
   },[]);
   const set = <K extends keyof Customer>(key:K,value:Customer[K]) => {setCustomer(prev=>({...prev,[key]:value}));setErrors(prev=>{const next={...prev};delete next[key];return next;});setPrepared(null);};
-  const shareGps = () => {
+  const sendOrder = (recipient:Customer) => {
+    try {
+      if(!navigator.onLine || window.__FOOD_OFFLINE_CONFIG__)throw new Error('Conéctate a internet y recarga el menú antes de abrir WhatsApp.');
+      const order = prepareOrder(cart,recipient,b);
+      if(b.demo){setPrepared(order);setGpsPrompt(false);return;}
+      const url=whatsappUrl(b,order.message);
+      setSendError('');setGpsPrompt(false);
+      window.location.assign(url);
+    } catch(e){setSendError(e instanceof Error?e.message:'No se pudo abrir WhatsApp.');}
+  };
+  const shareGps = (sendAfter = false) => {
     setGpsStatus('');
     if (!window.isSecureContext || !navigator.geolocation) {setGpsStatus('GPS no disponible aquí. Continúa con tu dirección escrita.');return;}
     const request=++gpsRequest.current; setGpsBusy(true);
     navigator.geolocation.getCurrentPosition(position=>{
       if(request!==gpsRequest.current)return;
       const gps={latitude:position.coords.latitude,longitude:position.coords.longitude};
-      try {gpsUrl(gps); set('gps',gps); setGpsStatus('Ubicación añadida al pedido.');} catch {setGpsStatus('No se pudo validar la ubicación. Usa tu dirección escrita.');}
+      try {gpsUrl(gps); set('gps',gps); setGpsStatus('Ubicación añadida al pedido.'); if(sendAfter)sendOrder({...customer,gps});} catch {setGpsStatus('No se pudo validar la ubicación. Usa tu dirección escrita.');}
       setGpsBusy(false);
     },error=>{
       if(request!==gpsRequest.current)return;
@@ -135,7 +150,11 @@ function Checkout({business:b, cart, lines, update, close, online}: {business:Bu
   const review=(event:React.FormEvent)=>{
     event.preventDefault(); const problems=validateCustomer(customer,b);setErrors(problems);
     if(Object.keys(problems).length) {window.setTimeout(()=>dialog.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(),0);return;}
-    try {if(!online&&!b.demo)throw new Error('Conéctate a internet antes de continuar.');setPrepared(prepareOrder(cart,customer,b));setSendError('');setCopyStatus('');dialog.current?.querySelector('.checkout-scroll')?.scrollTo({top:0});}catch(e){setSendError(e instanceof Error?e.message:'No se pudo preparar el pedido.');}
+    if(!online&&!b.demo){setSendError('Conéctate a internet antes de continuar.');return;}
+    setSendError('');setCopyStatus('');
+    if(customer.mode==='delivery'&&!customer.gps){setGpsPrompt(true);return;}
+    if(b.demo){setPrepared(prepareOrder(cart,customer,b));return;}
+    sendOrder(customer);
   };
   const copy=async()=>{
     if(!prepared)return;
@@ -148,9 +167,16 @@ function Checkout({business:b, cart, lines, update, close, online}: {business:Bu
     catch(e){event.preventDefault();setSendError(e instanceof Error?e.message:'No se pudo abrir WhatsApp.');}
   };
   const field=(key:'firstName'|'lastName'|'address'|'reference',label:string,placeholder:string,required=false)=> <label className="field">{label}{required&&<span> *</span>}<input name={key} autoComplete={key==='firstName'?'given-name':key==='lastName'?'family-name':key==='address'?'street-address':'off'} value={customer[key]} placeholder={placeholder} maxLength={250} onChange={e=>set(key,e.target.value)} aria-invalid={!!errors[key]} aria-describedby={errors[key]?`error-${key}`:undefined}/>{errors[key]&&<small className="field-error" id={`error-${key}`}>{errors[key]}</small>}</label>;
-  return <dialog ref={dialog} className="checkout-dialog" onCancel={e=>{e.preventDefault();close();}} onClick={e=>{if(e.target===dialog.current)close();}} aria-labelledby="checkout-title">
+  return <dialog ref={dialog} className="checkout-dialog" onCancel={e=>{e.preventDefault();if(gpsPrompt){gpsRequest.current++;setGpsBusy(false);setGpsPrompt(false);}else close();}} onClick={e=>{if(e.target===dialog.current)close();}} aria-labelledby="checkout-title">
     <div className="checkout-header"><div><span className="eyebrow">{prepared?'REVISA ANTES DE ENVIAR':'UN PASO MÁS PARA DISFRUTAR'}</span><h2 id="checkout-title">{prepared?'Tu pedido está listo':'Tu pedido'}<span>.</span></h2></div><button className="icon-button" onClick={close} aria-label="Cerrar pedido"><X size={23}/></button></div>
-    <div className="checkout-scroll">
+    {gpsPrompt && <div className="gps-confirm-overlay"><section className="gps-confirm" role="alertdialog" aria-modal="true" aria-labelledby="gps-confirm-title" aria-describedby="gps-confirm-description" onKeyDown={e=>{if(e.key==='Tab'){const buttons=[...e.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')];const first=buttons[0],last=buttons[buttons.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}}}}>
+      <h3 id="gps-confirm-title">📍 Falta la ubicación</h3><p id="gps-confirm-description">No has compartido tu GPS. Esto ayuda muchísimo a que el delivery llegue rápido. ¿Deseas enviar el pedido de todas formas sin el GPS?</p>
+      <button ref={promptButton} className="btn primary full-width" type="button" disabled={gpsBusy} onClick={()=>shareGps(true)}>{gpsBusy?'Buscando ubicación…':'📍 Enviar con GPS'}</button>
+      <button className="btn secondary full-width" type="button" disabled={gpsBusy} onClick={()=>sendOrder({...customer,gps:null})}>📤 Enviar sin GPS</button>
+      {gpsStatus && <p className="inline-status" role="status">{gpsStatus}</p>}{sendError && <p className="notice error" role="alert">{sendError}</p>}
+      <button className="text-button" type="button" disabled={gpsBusy} onClick={()=>setGpsPrompt(false)}>Volver al pedido</button>
+    </section></div>}
+    <div className="checkout-scroll" inert={gpsPrompt}>
       {!lines.length ? <div className="empty-state"><ShoppingBag size={40}/><h3>Tu carrito está vacío</h3><p>Elige algo rico del menú para comenzar.</p><button className="btn primary" onClick={close}>Volver al menú</button></div> : prepared ? <>
         <button className="text-button back-button" onClick={()=>{setPrepared(null);setSendError('');}}><ArrowLeft size={16}/> Editar pedido y entrega</button>
         <div className="review-note"><Check size={19}/><div><strong>{b.demo?'Mensaje de prueba preparado':'Mensaje preparado'}</strong><p>{b.demo?'Esta demostración no envía pedidos reales.':'Al abrir WhatsApp, pulsa Enviar para completar tu solicitud.'}</p></div></div>
@@ -166,7 +192,7 @@ function Checkout({business:b, cart, lines, update, close, online}: {business:Bu
         <section className="checkout-section"><h3><Truck size={19}/> ¿Cómo lo recibes?</h3><div className="choice-row">{b.delivery.enabled&&<label className={`choice ${customer.mode==='delivery'?'selected':''}`}><input type="radio" name="mode" value="delivery" checked={customer.mode==='delivery'} onChange={()=>set('mode','delivery')}/><Truck size={20}/><strong>Delivery</strong><small>Hasta tu dirección</small></label>}{b.pickup.enabled&&<label className={`choice ${customer.mode==='pickup'?'selected':''}`}><input type="radio" name="mode" value="pickup" checked={customer.mode==='pickup'} onChange={()=>{gpsRequest.current++;setGpsBusy(false);set('mode','pickup');}}/><ShoppingBag size={20}/><strong>Retiro en local</strong><small>Sin costo de envío</small></label>}</div>{errors.mode&&<p className="field-error">{errors.mode}</p>}</section>
         <section className="checkout-section"><h3><MapPin size={19}/> Datos de {customer.mode==='delivery'?'entrega':'retiro'}</h3><div className="fields-pair">{field('firstName','Nombre','Tu nombre',true)}{field('lastName','Apellido','Tu apellido',true)}</div>
           {customer.mode==='delivery'?<><label className="field">Zona de envío <span>*</span><select value={customer.zoneId} onChange={e=>set('zoneId',e.target.value)} aria-invalid={!!errors.zoneId} aria-describedby={errors.zoneId?'error-zone':undefined}><option value="">Selecciona tu zona</option>{b.delivery.zones.map(z=><option key={z.id} value={z.id}>{z.name} · {z.feeCents ? money(z.feeCents,b) : 'GRATIS'}</option>)}</select>{errors.zoneId&&<small className="field-error" id="error-zone">{errors.zoneId}</small>}</label>{field('address','Dirección exacta','Calle, número de casa, sector…',true)}{field('reference','Referencia de dirección','Ej.: casa blanca junto al parque')}
-            <div className="gps-section"><button className="btn secondary full-width" type="button" onClick={shareGps} disabled={gpsBusy}><Navigation size={17}/>{gpsBusy?'Buscando ubicación…':customer.gps?'Actualizar ubicación GPS':'Ayuda al motorizado · Compartir GPS'}</button><small>Opcional. Solo se incluirá en el mensaje si autorizas el permiso del navegador.</small>{customer.gps&&<div className="gps-result"><a href={gpsUrl(customer.gps)} target="_blank" rel="noopener noreferrer"><MapPin size={14}/> Ver ubicación añadida</a><button type="button" className="text-button" onClick={removeGps}>Quitar</button></div>}{gpsStatus&&<p className="inline-status" role="status">{gpsStatus}</p>}</div>
+            <div className="gps-section"><button className="btn secondary full-width" type="button" onClick={()=>shareGps()} disabled={gpsBusy}><Navigation size={17}/>{gpsBusy?'Buscando ubicación…':customer.gps?'Actualizar ubicación GPS':'Ayuda al motorizado · Compartir GPS'}</button><small>Opcional. Solo se incluirá en el mensaje si autorizas el permiso del navegador.</small>{customer.gps&&<div className="gps-result"><a href={gpsUrl(customer.gps)} target="_blank" rel="noopener noreferrer"><MapPin size={14}/> Ver ubicación añadida</a><button type="button" className="text-button" onClick={removeGps}>Quitar</button></div>}{gpsStatus&&<p className="inline-status" role="status">{gpsStatus}</p>}</div>
           </>:<div className="pickup-info"><strong>{b.location.address}</strong><p>{b.location.pickupInstructions}</p>{safeMapUrl(b.location.mapUrl)&&<a href={safeMapUrl(b.location.mapUrl)!} target="_blank" rel="noopener noreferrer">Ver mapa</a>}</div>}
         </section>
         <section className="checkout-section"><h3><Wallet size={19}/> ¿Cómo pagas?</h3><div className="choice-row">{b.payments.cash&&<label className={`choice ${customer.payment==='cash'?'selected':''}`}><input type="radio" name="payment" checked={customer.payment==='cash'} onChange={()=>set('payment','cash')}/><Wallet size={20}/><strong>Efectivo</strong><small>Pagas al recibir</small></label>}{b.payments.transfer&&<label className={`choice ${customer.payment==='transfer'?'selected':''}`}><input type="radio" name="payment" checked={customer.payment==='transfer'} onChange={()=>set('payment','transfer')}/><Smartphone size={20}/><strong>Transferencia</strong><small>El negocio verifica</small></label>}</div>{errors.payment&&<p className="field-error">{errors.payment}</p>}
@@ -175,7 +201,7 @@ function Checkout({business:b, cart, lines, update, close, online}: {business:Bu
         <label className="field">Observaciones <small>(opcional)</small><textarea value={customer.notes} onChange={e=>set('notes',e.target.value)} placeholder="Algo que debamos saber sobre tu pedido…" rows={2} maxLength={500}/></label>
         <div className="totals"><div><span>Subtotal</span><strong>{money(totals.subtotalCents,b)}</strong></div><div><span>{customer.mode==='delivery'?'Delivery':'Retiro en local'}</span><span>{customer.mode==='delivery'&&!customer.zoneId?'Elige tu zona':money(totals.deliveryCents,b)}</span></div><div className="grand-total"><strong>Total{customer.mode==='delivery'&&!customer.zoneId?' parcial':''}</strong><strong>{money(totals.totalCents,b)}</strong></div></div>
         {sendError&&<p className="notice error" role="alert">{sendError}</p>}
-        <button type="submit" className="btn primary full-width" disabled={!online&&!b.demo}>Revisar pedido <ArrowRight size={18}/></button><p className="privacy-note">Tus datos se usan para preparar el mensaje. No guardamos tu dirección ni tu GPS en este navegador.</p>
+        <button type="submit" className="btn primary full-width" disabled={!online&&!b.demo}>Enviar por WhatsApp <MessageCircle size={18}/></button><p className="privacy-note">En WhatsApp pulsa Enviar para completar tu solicitud. No guardamos tu dirección ni tu GPS en este navegador.</p>
       </form>}
     </div>
   </dialog>;

@@ -1,0 +1,30 @@
+{
+  "name": "red-gummy",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "npm run validate && tsc --noEmit && vite build && node scripts/prepare-pwa.mjs",
+    "test": "node --import tsx --test tests/*.test.ts tests/*.test.tsx",
+    "validate": "node --import tsx scripts/validate-config.ts",
+    "new-business": "node --import tsx scripts/new-business.ts",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "dependencies": {
+    "lucide-react": "0.468.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "@types/jsdom": "^21.1.7",
+    "@types/node": "22.18.10",
+    "@types/react": "19.2.0",
+    "@types/react-dom": "19.2.0",
+    "jsdom": "^26.1.0",
+    "sharp": "^0.34.4",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3",
+    "vite": "7.1.9"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "id": "./?business=red-gummy",
+  "name": "Red Gummy",
+  "short_name": "Red Gummy",
+  "description": "Frozen, fruta y gomitas enchiladas. Elige tus favoritos y arma tu pedido.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fff8ef",
+  "theme_color": "#b92325",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "./images/logo-red.png",
+      "sizes": "1080x1080",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

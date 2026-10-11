@@ -38,8 +38,6 @@ export function App({business:b}: {business:Business}) {
   const [category, setCategory] = useState('all');
   const [onlyAvailable, setOnlyAvailable] = useState(false);
   const [checkout, setCheckout] = useState(false);
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [now, setNow] = useState(() => new Date());
   const [online, setOnline] = useState(navigator.onLine && !window.__FOOD_OFFLINE_CONFIG__);
   const [storageWarning, setStorageWarning] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<(Event & {prompt:()=>Promise<void>; userChoice:Promise<{outcome:string}>}) | null>(null);
@@ -47,16 +45,13 @@ export function App({business:b}: {business:Business}) {
   const lines = useMemo(() => cartLines(cart,b),[cart,b]);
   const count = lines.reduce((s,l) => s+l.quantity,0);
   const subtotal = lines.reduce((s,l) => s+l.lineCents,0);
-  const open = isOpen(b,now);
-  const blocked = !b.demo && b.hours.enforce && !open;
   useEffect(() => { try { localStorage.setItem(storageKey(b),JSON.stringify(cart)); } catch { setStorageWarning(true); } },[cart,b]);
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()),30_000);
     const status = () => setOnline(navigator.onLine && !window.__FOOD_OFFLINE_CONFIG__);
     const install = (e: Event) => { e.preventDefault(); setInstallPrompt(e as typeof installPrompt); };
     const installed = () => setInstallPrompt(null);
     window.addEventListener('online',status); window.addEventListener('offline',status); window.addEventListener('beforeinstallprompt',install); window.addEventListener('appinstalled',installed);
-    return () => {clearInterval(timer); window.removeEventListener('online',status); window.removeEventListener('offline',status); window.removeEventListener('beforeinstallprompt',install); window.removeEventListener('appinstalled',installed);};
+    return () => {window.removeEventListener('online',status); window.removeEventListener('offline',status); window.removeEventListener('beforeinstallprompt',install); window.removeEventListener('appinstalled',installed);};
   },[]);
   const update = (item: Pick<CartItem,'productId'|'variantId'>, delta:number) => {
     setCart(prev => changeQuantity(prev,item,delta,b));
@@ -79,11 +74,7 @@ export function App({business:b}: {business:Business}) {
         <p>🕘 {hoursText(b)}</p>
         <p className="delivery-warning">⚠️ Sin envíos fuera de horario</p>
         {map && <p>📍 Visítanos en nuestro local · <a href={map} target="_blank" rel="noopener noreferrer">Ver mapa</a></p>}
-        <button className="text-button" onClick={() => setDetailsOpen(!detailsOpen)} aria-expanded={detailsOpen} aria-controls="business-details"><span className={`status-dot ${open?'open':''}`}/>{open?'En horario de atención':'Fuera de horario'} · Ver tarifas <ChevronRight size={14}/></button>
       </section>
-      {detailsOpen && <section className="business-details" id="business-details"><div><h2><Clock3 size={18}/> Horarios</h2><p>{hoursText(b)}</p><small>Zona horaria: {b.hours.timeZone}{b.demo ? ' · ejemplo configurable' : ''}</small></div><div><h2><Truck size={18}/> Delivery</h2>{b.delivery.zones.map(z=><p key={z.id}>{z.name} · {z.feeCents ? money(z.feeCents,b) : 'GRATIS'}</p>)}</div></section>}
-      {!open && !blocked && <p className="notice" role="status">{b.hours.closedMessage} Puedes preparar tu solicitud; el negocio la atenderá en su horario.</p>}
-      {blocked && <p className="notice" role="status">{b.hours.closedMessage}</p>}
       <section className="menu-section" id="menu">        <div className="menu-tools">{categories.length > 1 && <nav className="category-tabs" aria-label="Categorías"><button className={category==='all'?'active':''} onClick={() => setCategory('all')} aria-pressed={category==='all'}>Todo el menú</button>{categories.map(c => <button key={c.id} className={category===c.id?'active':''} onClick={() => setCategory(c.id)} aria-pressed={category===c.id}>{c.name}</button>)}</nav>}</div>
         <div className="filter-row"><label><input type="checkbox" checked={onlyAvailable} onChange={e=>setOnlyAvailable(e.target.checked)}/> Mostrar solo disponibles</label><span>{visible.length} {visible.length===1?'opción':'opciones'}</span></div>
         <div className="product-grid">{visible.map(p => <ProductCard key={p.id} product={p} business={b} cart={cart} update={update}/>)}</div>

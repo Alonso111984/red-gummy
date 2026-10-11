@@ -11,3 +11,6 @@ html{scroll-padding-top:90px}main,footer{max-width:880px;margin-inline:auto;padd
 
 /* Business information remains readable in the compact catalogue. */
 .app-intro p{font-size:16px;line-height:1.5;margin:7px 0}.app-intro .delivery-warning{color:#ffca75;font-size:14px;font-weight:700}@media(max-width:700px){.app-intro p{font-size:14px}.app-intro .delivery-warning{font-size:14px}}
+
+/* Clear checkout labels and prominent voluntary GPS action. */
+.field{font-size:15px;font-weight:700}.field>small{font-size:12px}.gps-section>.btn{background:#402d18;border:2px solid #ffb44a;color:#fff5e6;padding:14px 12px;gap:12px;box-shadow:0 3px 12px #0003;min-height:78px;text-align:left}.gps-section>.btn:hover{background:#50371d}.gps-button-copy{display:flex;flex-direction:column;gap:6px}.gps-button-copy strong{font-size:15px;line-height:1.35}.gps-button-copy>span{font-size:13px;line-height:1.4;color:#f0d5b2}.gps-section>small{font-size:12px}.gps-result{font-size:13px;min-height:44px;flex-wrap:wrap}.gps-result .text-button{font-size:13px;min-height:44px}

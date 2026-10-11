@@ -20,7 +20,7 @@ test('Red Gummy: 2 gomitas + frozen + mango cuestan 9.50 más la tarifa exacta',
   assert.deepEqual(order.totals,{subtotalCents:950,deliveryCents:fee,totalCents:950+fee});
   assert.ok(order.message.includes('Cobrar al entregar: '+money(950+fee,b)));
   const url=new URL(whatsappUrl(b,order.message));
-  assert.equal(url.pathname,'/593978786715');
+  assert.equal(url.pathname,'/593993504478');
   assert.equal(url.searchParams.get('text'),order.message);
  }
 });

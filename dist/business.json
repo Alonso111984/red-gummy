@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
   "id": "red-gummy",
-  "revision": "2026-10-11-v2",
+  "revision": "2026-10-11-v4",
   "demo": false,
   "visualStyle": "real-object-ui",
   "name": "Red Gummy",
   "tagline": "Red Gummy, el sabor que te prende 🔥",
   "description": "Frozen, fruta y gomitas enchiladas. Elige tus favoritos y arma tu pedido.",
   "logo": "images/logo-red.png",
-  "whatsapp": "593978786715",
+  "whatsapp": "593993504478",
   "currency": "USD",
   "locale": "es-EC",
   "theme": {

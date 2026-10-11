@@ -1,4 +1,4 @@
-const CACHE="armaia-food-red-gummy-2026-10-11-v2-1791695569934";
+const CACHE="armaia-food-red-gummy-2026-10-11-v4-1791696117654";
 const ASSETS=["./assets/index-9deejUg8.js","./assets/index-BoWlvijK.css","./business.json","./images/gomitas-enchiladas.jpg","./images/logo-red.png","./images/vaso-mngo-enchilado.jpg","./images/vaso-pulp-durazno.png","./images/vaso-pulp-mango.png","./index.html","./manifest.webmanifest"];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)));});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('armaia-food-')&&key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});

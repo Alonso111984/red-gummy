@@ -24,9 +24,11 @@ test('flujo interactivo: variantes, validación, delivery, retiro, pago y copia 
   try{
     await act(async()=>root.render(<App business={b}/>));
     assert.equal(document.querySelectorAll('.product-card').length,5);
+    assert.equal(document.querySelector('.hero'),null);
+    assert.equal(document.querySelector('.brand strong'),null);
     assert.equal(new Set([...document.querySelectorAll<HTMLImageElement>('.product-photo img')].map(img=>img.src)).size,5);
     assert.equal(document.querySelectorAll('.sold-out .quantity').length,0);
-    await click('[aria-label="Agregar favorito al pedido: Corviche clásico"]');
+    await click('[aria-label="Agregar uno: Corviche clásico Tradicional"]');
     assert.ok(document.querySelector('.cart-dock')?.textContent?.includes('1 unidad'));
     await click('[aria-label="Quitar uno: Corviche clásico Tradicional"]');
     assert.equal(document.querySelector('.cart-dock'),null);
@@ -36,6 +38,7 @@ test('flujo interactivo: variantes, validación, delivery, retiro, pago y copia 
     assert.ok(document.querySelector('.cart-dock')?.textContent?.includes('2 unidades'));
     await click('.dock-inner > button');
     assert.equal(document.querySelectorAll('.order-line').length,2);
+    assert.equal(document.querySelectorAll('.order-lines img').length,0);
     await submit();
     assert.equal(document.querySelectorAll('[aria-invalid="true"]').length,4);
     await fill('input[name="firstName"]','Ana');await fill('input[name="lastName"]','Pérez');

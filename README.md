@@ -14,3 +14,7 @@ Aplicación de pedidos con catálogo, carrito y checkout por WhatsApp. Las fotos
 Configuración del negocio: `public/business.json`. Fuentes: `src/`. Compilación: `npm ci` y `npm run build`. Pruebas: `npm test`. Archivos del sitio: `dist/`.
 
 Verificación: compilación y pruebas automatizadas. Revisión visual en navegador, GPS real e instalación PWA pendientes.
+
+## Diseño compacto v2
+
+Encabezado sticky con logo centrado, sin hero, catálogo en filas con foto a la izquierda y controles de cantidad, barra de subtotal fija y resumen sin fotografías. Layout responsive para móvil y escritorio. Fotos originales sin modificaciones. Compilación y 37 pruebas automatizadas verificadas; revisión visual en navegador pendiente.
